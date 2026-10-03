@@ -8,7 +8,7 @@ wheels/
 
 # Virtual environments
 .venv
-
+.env
 
 #data
 
@@ -16,3 +16,4 @@ wheels/
 acc_det/dataset
 acc_det/output
 acc_det/runs
+output/

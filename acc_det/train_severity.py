@@ -12,14 +12,33 @@ from acc_det.config import SEVERITY_DATASET_DIR, WEIGHTS_DIR, TIER2_BEST_SEVERIT
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Train Tier 2 Accident Severity Classifier (Moderate vs Severe)")
-    parser.add_argument("--model", type=str, default="yolo11n-cls.pt", help="Base classification checkpoint (default: yolo11n-cls.pt)")
-    parser.add_argument("--epochs", type=int, default=20, help="Number of training epochs (default: 20)")
-    parser.add_argument("--batch", type=int, default=32, help="Batch size (default: 32)")
-    parser.add_argument("--imgsz", type=int, default=224, help="Crop image size (default: 224)")
-    parser.add_argument("--device", type=str, default="0", help="GPU device ID or 'cpu' (default: 0)")
-    parser.add_argument("--workers", type=int, default=4, help="DataLoader workers (default: 4)")
-    parser.add_argument("--name", type=str, default="severity_classifier", help="Experiment name")
+    parser = argparse.ArgumentParser(
+        description="Train Tier 2 Accident Severity Classifier (Moderate vs Severe)"
+    )
+    parser.add_argument(
+        "--model",
+        type=str,
+        default="yolo11n-cls.pt",
+        help="Base classification checkpoint (default: yolo11n-cls.pt)",
+    )
+    parser.add_argument(
+        "--epochs", type=int, default=20, help="Number of training epochs (default: 20)"
+    )
+    parser.add_argument(
+        "--batch", type=int, default=32, help="Batch size (default: 32)"
+    )
+    parser.add_argument(
+        "--imgsz", type=int, default=224, help="Crop image size (default: 224)"
+    )
+    parser.add_argument(
+        "--device", type=str, default="0", help="GPU device ID or 'cpu' (default: 0)"
+    )
+    parser.add_argument(
+        "--workers", type=int, default=4, help="DataLoader workers (default: 4)"
+    )
+    parser.add_argument(
+        "--name", type=str, default="severity_classifier", help="Experiment name"
+    )
     return parser.parse_args()
 
 
@@ -28,7 +47,9 @@ def train():
     data_dir = os.path.abspath(SEVERITY_DATASET_DIR)
 
     if not os.path.exists(os.path.join(data_dir, "train")):
-        raise FileNotFoundError(f"Severity dataset not found at: {data_dir}. Run prepare_severity_data.py first!")
+        raise FileNotFoundError(
+            f"Severity dataset not found at: {data_dir}. Run prepare_severity_data.py first!"
+        )
 
     print("=" * 65)
     print("   TIER 2: ACCIDENT SEVERITY CLASSIFIER (MODERATE vs SEVERE)   ")
@@ -56,7 +77,9 @@ def train():
         plots=True,
         amp=True,
         name=args.name,
-        project=os.path.join(os.path.dirname(os.path.abspath(__file__)), "runs", "train_cls")
+        project=os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "runs", "train_cls"
+        ),
     )
 
     train_dir = results.save_dir

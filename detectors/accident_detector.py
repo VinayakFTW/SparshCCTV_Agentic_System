@@ -12,13 +12,14 @@ from config import (
     CRASH_MODEL_PATH,
     SEVERITY_CONFIG,
     DEFAULT_CRASH_CONF,
-    DEFAULT_CRASH_IOU
+    DEFAULT_CRASH_IOU,
 )
 
 
 @dataclass
 class VehicleDetection:
     """Represents a single detected vehicle or accident with severity."""
+
     bbox: Tuple[int, int, int, int]  # (x1, y1, x2, y2) in pixel coordinates
     confidence: float
     class_id: int
@@ -39,7 +40,7 @@ class AccidentDetector:
         conf_thres: float = DEFAULT_CRASH_CONF,
         iou_thres: float = DEFAULT_CRASH_IOU,
         device: Optional[str] = None,
-        input_size: Tuple[int, int] = (800, 800)
+        input_size: Tuple[int, int] = (800, 800),
     ):
         self.model_dir = model_dir
         self.conf_thres = conf_thres
@@ -54,12 +55,13 @@ class AccidentDetector:
         # Check weights exist
         weights_file = os.path.join(self.model_dir, "model.safetensors")
         if not os.path.exists(weights_file):
-            raise FileNotFoundError(f"Crash classifier weights not found at: {weights_file}")
+            raise FileNotFoundError(
+                f"Crash classifier weights not found at: {weights_file}"
+            )
 
         # Load DETR model locally without internet calls
         self.model = AutoModelForObjectDetection.from_pretrained(
-            self.model_dir,
-            local_files_only=True
+            self.model_dir, local_files_only=True
         )
 
         # Use FP16 on CUDA for 2x real-time speedup
@@ -74,8 +76,12 @@ class AccidentDetector:
         self.model.eval()
 
         # ImageNet normalization tensors pre-allocated on device
-        self.mean = torch.tensor([0.485, 0.456, 0.406], device=self.device, dtype=self.dtype).view(1, 3, 1, 1)
-        self.std = torch.tensor([0.229, 0.224, 0.225], device=self.device, dtype=self.dtype).view(1, 3, 1, 1)
+        self.mean = torch.tensor(
+            [0.485, 0.456, 0.406], device=self.device, dtype=self.dtype
+        ).view(1, 3, 1, 1)
+        self.std = torch.tensor(
+            [0.229, 0.224, 0.225], device=self.device, dtype=self.dtype
+        ).view(1, 3, 1, 1)
 
     def set_confidence(self, conf: float):
         """Update detection confidence threshold."""
@@ -93,15 +99,23 @@ class AccidentDetector:
         # 1. Fast GPU-accelerated Preprocessing
         rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
         resized = cv2.resize(rgb, self.input_size)
-        tensor = torch.from_numpy(resized).permute(2, 0, 1).unsqueeze(0).to(self.device, dtype=self.dtype) / 255.0
+        tensor = (
+            torch.from_numpy(resized)
+            .permute(2, 0, 1)
+            .unsqueeze(0)
+            .to(self.device, dtype=self.dtype)
+            / 255.0
+        )
         tensor = (tensor - self.mean) / self.std
 
         # 2. Forward inference with PyTorch inference mode
         with torch.inference_mode():
             outputs = self.model(tensor)
 
-        logits = outputs.logits[0]        # Shape: (100, 4)
-        pred_boxes = outputs.pred_boxes[0]  # Shape: (100, 4) in [cx, cy, bw, bh] normalized
+        logits = outputs.logits[0]  # Shape: (100, 4)
+        pred_boxes = outputs.pred_boxes[
+            0
+        ]  # Shape: (100, 4) in [cx, cy, bw, bh] normalized
 
         # 3. Softmax over the 3 foreground classes (class 3 is background/no-object in DETR)
         probs = logits.softmax(-1)[:, :3]
@@ -137,31 +151,38 @@ class AccidentDetector:
             conf_val = float(kept_scores[idx].item())
             box_coords = [int(v.item()) for v in pixel_boxes[idx]]
 
-            cfg = SEVERITY_CONFIG.get(cls_id, {
-                "raw_name": f"class_{cls_id}",
-                "display_name": f"Class {cls_id}",
-                "short_name": f"C{cls_id}",
-                "color": (200, 200, 200),
-                "is_accident": False,
-                "level": 0
-            })
+            cfg = SEVERITY_CONFIG.get(
+                cls_id,
+                {
+                    "raw_name": f"class_{cls_id}",
+                    "display_name": f"Class {cls_id}",
+                    "short_name": f"C{cls_id}",
+                    "color": (200, 200, 200),
+                    "is_accident": False,
+                    "level": 0,
+                },
+            )
 
-            detections.append(VehicleDetection(
-                bbox=(box_coords[0], box_coords[1], box_coords[2], box_coords[3]),
-                confidence=conf_val,
-                class_id=cls_id,
-                raw_name=cfg["raw_name"],
-                display_name=cfg["display_name"],
-                short_name=cfg["short_name"],
-                color=cfg["color"],
-                is_accident=cfg["is_accident"],
-                severity_level=cfg["level"]
-            ))
+            detections.append(
+                VehicleDetection(
+                    bbox=(box_coords[0], box_coords[1], box_coords[2], box_coords[3]),
+                    confidence=conf_val,
+                    class_id=cls_id,
+                    raw_name=cfg["raw_name"],
+                    display_name=cfg["display_name"],
+                    short_name=cfg["short_name"],
+                    color=cfg["color"],
+                    is_accident=cfg["is_accident"],
+                    severity_level=cfg["level"],
+                )
+            )
 
         return detections
 
     @staticmethod
-    def get_highest_severity(detections: List[VehicleDetection]) -> Tuple[int, Optional[VehicleDetection]]:
+    def get_highest_severity(
+        detections: List[VehicleDetection],
+    ) -> Tuple[int, Optional[VehicleDetection]]:
         """
         Returns (highest_severity_level, detection_with_highest_severity).
         Returns (-1, None) if no detections.

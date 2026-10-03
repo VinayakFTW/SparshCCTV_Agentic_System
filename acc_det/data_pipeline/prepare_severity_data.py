@@ -13,7 +13,9 @@ def ensure_severity_dirs():
     """Ensure directory structure for severity classification."""
     for split in ["train", "val"]:
         for cls_name in ["moderate", "severe"]:
-            os.makedirs(os.path.join(SEVERITY_DATASET_DIR, split, cls_name), exist_ok=True)
+            os.makedirs(
+                os.path.join(SEVERITY_DATASET_DIR, split, cls_name), exist_ok=True
+            )
 
 
 def extract_crops_from_detection_dataset():
@@ -23,9 +25,14 @@ def extract_crops_from_detection_dataset():
     and area metrics.
     """
     ensure_severity_dirs()
-    print("\n[Severity Curation] Extracting accident ROI crops from detection dataset...")
+    print(
+        "\n[Severity Curation] Extracting accident ROI crops from detection dataset..."
+    )
 
-    crop_counts = {"train": {"moderate": 0, "severe": 0}, "val": {"moderate": 0, "severe": 0}}
+    crop_counts = {
+        "train": {"moderate": 0, "severe": 0},
+        "val": {"moderate": 0, "severe": 0},
+    }
 
     for split in ["train", "val"]:
         img_dir = os.path.join(DETECTION_DATASET_DIR, "images", split)
@@ -68,9 +75,10 @@ def extract_crops_from_detection_dataset():
                 # Severe: Large area (>0.25 of frame), abnormal aspect ratio (rollover), or multi-vehicle collision
                 # Moderate: Moderate area, single lane/fender impact
                 is_severe = (
-                    is_multi_vehicle or
-                    box_area > 0.22 or
-                    aspect_ratio < 0.6 or aspect_ratio > 2.5
+                    is_multi_vehicle
+                    or box_area > 0.22
+                    or aspect_ratio < 0.6
+                    or aspect_ratio > 2.5
                 )
                 severity_label = "severe" if is_severe else "moderate"
 
@@ -90,7 +98,9 @@ def extract_crops_from_detection_dataset():
                 crop_resized = cv2.resize(crop, (224, 224))
 
                 crop_filename = f"{base_name}_crop{idx}.jpg"
-                out_path = os.path.join(SEVERITY_DATASET_DIR, split, severity_label, crop_filename)
+                out_path = os.path.join(
+                    SEVERITY_DATASET_DIR, split, severity_label, crop_filename
+                )
                 cv2.imwrite(out_path, crop_resized, [cv2.IMWRITE_JPEG_QUALITY, 92])
 
                 crop_counts[split][severity_label] += 1
@@ -112,7 +122,7 @@ def extract_crops_from_cctv_clips():
         {"name": "crash.mp4", "label": "severe", "split": "train", "stride": 4},
         {"name": "crash2.mp4", "label": "severe", "split": "val", "stride": 4},
         {"name": "bikeacc.mp4", "label": "moderate", "split": "train", "stride": 6},
-        {"name": "realcrash1.mp4", "label": "moderate", "split": "val", "stride": 4}
+        {"name": "realcrash1.mp4", "label": "moderate", "split": "val", "stride": 4},
     ]
 
     print("\n[Severity Curation] Extracting crops from verified CCTV clips...")
@@ -141,7 +151,9 @@ def extract_crops_from_cctv_clips():
                 resized = cv2.resize(crop, (224, 224))
 
                 filename = f"clip_{os.path.splitext(cfg['name'])[0]}_{saved:03d}.jpg"
-                out_path = os.path.join(SEVERITY_DATASET_DIR, cfg["split"], cfg["label"], filename)
+                out_path = os.path.join(
+                    SEVERITY_DATASET_DIR, cfg["split"], cfg["label"], filename
+                )
                 cv2.imwrite(out_path, resized, [cv2.IMWRITE_JPEG_QUALITY, 92])
 
                 saved += 1
@@ -150,7 +162,9 @@ def extract_crops_from_cctv_clips():
             frame_idx += 1
 
         cap.release()
-        print(f"  [+] Added {saved} {cfg['label']} crops from {cfg['name']} ({cfg['split']})")
+        print(
+            f"  [+] Added {saved} {cfg['label']} crops from {cfg['name']} ({cfg['split']})"
+        )
 
     print(f"[+] Total video clip severity crops added: {mined_clip_crops}")
     return mined_clip_crops

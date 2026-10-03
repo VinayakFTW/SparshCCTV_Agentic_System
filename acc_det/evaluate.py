@@ -10,7 +10,7 @@ from acc_det.config import (
     DETECTION_DATASET_DIR,
     SEVERITY_DATASET_DIR,
     TIER1_BEST_DETECTOR,
-    TIER2_BEST_SEVERITY
+    TIER2_BEST_SEVERITY,
 )
 
 
@@ -30,7 +30,7 @@ def evaluate_models():
     print(f"Overall mAP@50-95    : {det_metrics.box.map:.4f}")
     print(f"Overall Precision    : {det_metrics.box.mp:.4f}")
     print(f"Overall Recall       : {det_metrics.box.mr:.4f}")
-    
+
     # Class-specific metrics
     if hasattr(det_metrics.box, "maps") and len(det_metrics.box.maps) >= 2:
         print(f"  Class 0 (Normal)   mAP@50: {det_metrics.box.maps[0]:.4f}")
@@ -39,7 +39,9 @@ def evaluate_models():
     # 2. Tier 2 Severity Evaluation on Validation Split
     print("\n[2/2] Evaluating Tier 2 Severity Classifier on Validation Split...")
     severity_classifier = YOLO(TIER2_BEST_SEVERITY)
-    sev_metrics = severity_classifier.val(data=os.path.abspath(SEVERITY_DATASET_DIR), split="val", verbose=True)
+    sev_metrics = severity_classifier.val(
+        data=os.path.abspath(SEVERITY_DATASET_DIR), split="val", verbose=True
+    )
 
     print("\n--- Tier 2 Severity Test Metrics ---")
     print(f"Top-1 Accuracy       : {sev_metrics.top1:.4f}")

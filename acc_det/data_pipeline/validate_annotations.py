@@ -23,7 +23,9 @@ def validate_all_annotations():
 
     print(f"[*] Found {len(img_files)} images and {len(lbl_files)} label files.")
     if len(img_files) == 0:
-        print("[!] Error: No auto-annotated images found. Run auto_annotate_videos.py first!")
+        print(
+            "[!] Error: No auto-annotated images found. Run auto_annotate_videos.py first!"
+        )
         return False
 
     errors = []
@@ -49,11 +51,13 @@ def validate_all_annotations():
             empty_label_files += 1
             continue
 
-        is_noacc_video = ("cctv_noacc_" in base_name)
+        is_noacc_video = "cctv_noacc_" in base_name
 
         for line_idx, parts in enumerate(lines):
             if len(parts) != 5:
-                errors.append(f"{base_name}.txt line {line_idx}: Expected 5 fields, got {len(parts)}")
+                errors.append(
+                    f"{base_name}.txt line {line_idx}: Expected 5 fields, got {len(parts)}"
+                )
                 continue
 
             try:
@@ -67,27 +71,39 @@ def validate_all_annotations():
                 continue
 
             if cls_id not in (0, 1):
-                errors.append(f"{base_name}.txt line {line_idx}: Invalid class {cls_id}")
+                errors.append(
+                    f"{base_name}.txt line {line_idx}: Invalid class {cls_id}"
+                )
 
             # Zero leakage assertion
             if is_noacc_video and cls_id == 1:
                 noacc_accident_leakage += 1
-                errors.append(f"CRITICAL: Accident label leaked into no-accident file: {base_name}")
+                errors.append(
+                    f"CRITICAL: Accident label leaked into no-accident file: {base_name}"
+                )
 
             # Boundary checks
             if not (0.0 <= xc <= 1.0 and 0.0 <= yc <= 1.0):
-                errors.append(f"{base_name}.txt line {line_idx}: Center out of bounds: xc={xc}, yc={yc}")
+                errors.append(
+                    f"{base_name}.txt line {line_idx}: Center out of bounds: xc={xc}, yc={yc}"
+                )
             if not (0.0 < nw <= 1.0 and 0.0 < nh <= 1.0):
-                errors.append(f"{base_name}.txt line {line_idx}: Dimensions out of bounds: nw={nw}, nh={nh}")
+                errors.append(
+                    f"{base_name}.txt line {line_idx}: Dimensions out of bounds: nw={nw}, nh={nh}"
+                )
 
             # Area & aspect checks
             area = nw * nh
             if area < 0.0002:
-                warnings.append(f"{base_name}.txt line {line_idx}: Very small bounding box: area={area:.5f}")
+                warnings.append(
+                    f"{base_name}.txt line {line_idx}: Very small bounding box: area={area:.5f}"
+                )
 
             ratio = nw / max(0.001, nh)
             if ratio < 0.10 or ratio > 8.0:
-                warnings.append(f"{base_name}.txt line {line_idx}: Extreme aspect ratio: {ratio:.2f}")
+                warnings.append(
+                    f"{base_name}.txt line {line_idx}: Extreme aspect ratio: {ratio:.2f}"
+                )
 
             total_boxes += 1
             class_counts[cls_id] = class_counts.get(cls_id, 0) + 1
@@ -99,7 +115,9 @@ def validate_all_annotations():
     print(f"Total Bounding Boxes       : {total_boxes}")
     print(f"  - Normal Vehicles (0)    : {class_counts[0]}")
     print(f"  - Accident Instances (1) : {class_counts[1]}")
-    print(f"Pure Background Negatives  : {empty_label_files} ({empty_label_files/len(img_files):.1%})")
+    print(
+        f"Pure Background Negatives  : {empty_label_files} ({empty_label_files / len(img_files):.1%})"
+    )
     print(f"No-Accident Label Leakage  : {noacc_accident_leakage} (Must be 0)")
     print(f"Integrity Errors Found     : {len(errors)}")
     print(f"Minor Geometric Warnings   : {len(warnings)}")
@@ -111,7 +129,9 @@ def validate_all_annotations():
             print(f"  - {err}")
         return False
 
-    print("\n[+] SUCCESS: All annotations passed 100% of mathematical & category integrity checks!")
+    print(
+        "\n[+] SUCCESS: All annotations passed 100% of mathematical & category integrity checks!"
+    )
     return True
 
 

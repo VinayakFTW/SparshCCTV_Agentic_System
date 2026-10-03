@@ -11,6 +11,7 @@ from config import FIRE_MODEL_PATH, FIRE_CLASSES, FIRE_COLORS, DEFAULT_FIRE_CONF
 @dataclass
 class FireDetection:
     """Individual fire or smoke bounding box detection."""
+
     bbox: Tuple[int, int, int, int]  # (x1, y1, x2, y2)
     confidence: float
     class_id: int
@@ -21,6 +22,7 @@ class FireDetection:
 @dataclass
 class FireResult:
     """Detection result from Fire and Smoke Detector."""
+
     has_fire: bool = False
     has_smoke: bool = False
     fire_confidence: float = 0.0
@@ -66,7 +68,7 @@ class FireDetector:
         self,
         model_path: str = FIRE_MODEL_PATH,
         conf_thres: float = DEFAULT_FIRE_CONF,
-        device: Optional[str] = None
+        device: Optional[str] = None,
     ):
         self.model_path = model_path
         self.conf_thres = conf_thres
@@ -77,7 +79,9 @@ class FireDetector:
             self.device = device
 
         if not os.path.exists(self.model_path):
-            raise FileNotFoundError(f"Fire classifier weights not found at: {self.model_path}")
+            raise FileNotFoundError(
+                f"Fire classifier weights not found at: {self.model_path}"
+            )
 
         self.model = YOLO(self.model_path)
 
@@ -92,7 +96,9 @@ class FireDetector:
         Returns:
             FireResult containing detected bounding boxes, status flags, and confidence scores.
         """
-        results = self.model(frame_bgr, conf=self.conf_thres, device=self.device, verbose=False)
+        results = self.model(
+            frame_bgr, conf=self.conf_thres, device=self.device, verbose=False
+        )
         detections: List[FireDetection] = []
 
         has_fire = False
@@ -118,18 +124,20 @@ class FireDetector:
                     if conf > max_smoke_conf:
                         max_smoke_conf = conf
 
-                detections.append(FireDetection(
-                    bbox=(x1, y1, x2, y2),
-                    confidence=conf,
-                    class_id=cls_id,
-                    label=label.capitalize(),
-                    color=color
-                ))
+                detections.append(
+                    FireDetection(
+                        bbox=(x1, y1, x2, y2),
+                        confidence=conf,
+                        class_id=cls_id,
+                        label=label.capitalize(),
+                        color=color,
+                    )
+                )
 
         return FireResult(
             has_fire=has_fire,
             has_smoke=has_smoke,
             fire_confidence=max_fire_conf,
             smoke_confidence=max_smoke_conf,
-            detections=detections
+            detections=detections,
         )

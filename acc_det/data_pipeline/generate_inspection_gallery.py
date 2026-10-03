@@ -53,11 +53,11 @@ def draw_yolo_labels(image_path, label_path):
             y2 = max(y1 + 1, min(h, y2))
 
             if cls_id == 1:
-                color = (0, 40, 240)      # Red for Accident
+                color = (0, 40, 240)  # Red for Accident
                 label_text = "ACCIDENT"
                 acc_count += 1
             else:
-                color = (0, 210, 60)      # Green for Normal Vehicle
+                color = (0, 210, 60)  # Green for Normal Vehicle
                 label_text = "NORMAL VEHICLE"
                 norm_count += 1
 
@@ -65,13 +65,29 @@ def draw_yolo_labels(image_path, label_path):
             (tw, th), _ = cv2.getTextSize(label_text, cv2.FONT_HERSHEY_SIMPLEX, 0.45, 1)
             by1 = max(0, y1 - th - 6)
             cv2.rectangle(annotated, (x1, by1), (x1 + tw + 6, y1), color, -1)
-            cv2.putText(annotated, label_text, (x1 + 3, y1 - 4), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (255, 255, 255), 1)
+            cv2.putText(
+                annotated,
+                label_text,
+                (x1 + 3, y1 - 4),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.45,
+                (255, 255, 255),
+                1,
+            )
 
     if acc_count == 0 and norm_count == 0:
         # Background negative badge
         cv2.rectangle(annotated, (15, 15), (260, 45), (40, 40, 40), -1)
         cv2.rectangle(annotated, (15, 15), (260, 45), (120, 120, 120), 1)
-        cv2.putText(annotated, "BACKGROUND NEGATIVE", (25, 36), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (200, 200, 200), 1)
+        cv2.putText(
+            annotated,
+            "BACKGROUND NEGATIVE",
+            (25, 36),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.5,
+            (200, 200, 200),
+            1,
+        )
 
     return annotated, acc_count, norm_count
 

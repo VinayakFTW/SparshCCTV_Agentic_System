@@ -15,7 +15,7 @@ from acc_det.config import (
     ACC_DET_DIR,
     DETECTION_DATASET_DIR,
     SEVERITY_DATASET_DIR,
-    DETECTION_CLASSES
+    DETECTION_CLASSES,
 )
 
 VIDEO_DERIVED_DIR = os.path.join(ACC_DET_DIR, "dataset", "video_derived")
@@ -43,8 +43,8 @@ def fuse_datasets():
 
     splits_map = {
         "train": shuffled_imgs[:n_train],
-        "val": shuffled_imgs[n_train:n_train + n_val],
-        "test": shuffled_imgs[n_train + n_val:]
+        "val": shuffled_imgs[n_train : n_train + n_val],
+        "test": shuffled_imgs[n_train + n_val :],
     }
 
     print(f"[*] Merging Splits: Train={n_train}, Val={n_val}, Test={n_test}")
@@ -81,7 +81,7 @@ def fuse_datasets():
                             for c_idx, box in enumerate(accident_boxes):
                                 _, xc, yc, bw, bh = [float(v) for v in box]
                                 # Heuristic severity classification for crop
-                                is_severe = (len(accident_boxes) >= 2 or (bw * bh > 0.18))
+                                is_severe = len(accident_boxes) >= 2 or (bw * bh > 0.18)
                                 sev_label = "severe" if is_severe else "moderate"
 
                                 pad_w = int(bw * 0.10 * w)
@@ -98,15 +98,25 @@ def fuse_datasets():
                                         SEVERITY_DATASET_DIR,
                                         split_name,
                                         sev_label,
-                                        f"vd_{base_name}_c{c_idx}.jpg"
+                                        f"vd_{base_name}_c{c_idx}.jpg",
                                     )
-                                    cv2.imwrite(crop_out, crop_res, [cv2.IMWRITE_JPEG_QUALITY, 90])
+                                    cv2.imwrite(
+                                        crop_out,
+                                        crop_res,
+                                        [cv2.IMWRITE_JPEG_QUALITY, 90],
+                                    )
                                     new_severity_crops[split_name] += 1
 
     # Count final dataset totals
-    train_total = len(glob.glob(os.path.join(DETECTION_DATASET_DIR, "images", "train", "*.jpg")))
-    val_total = len(glob.glob(os.path.join(DETECTION_DATASET_DIR, "images", "val", "*.jpg")))
-    test_total = len(glob.glob(os.path.join(DETECTION_DATASET_DIR, "images", "test", "*.jpg")))
+    train_total = len(
+        glob.glob(os.path.join(DETECTION_DATASET_DIR, "images", "train", "*.jpg"))
+    )
+    val_total = len(
+        glob.glob(os.path.join(DETECTION_DATASET_DIR, "images", "val", "*.jpg"))
+    )
+    test_total = len(
+        glob.glob(os.path.join(DETECTION_DATASET_DIR, "images", "test", "*.jpg"))
+    )
 
     print("\n" + "=" * 65)
     print("   DATASET FUSION COMPLETED SUCCESSFULLY!   ")

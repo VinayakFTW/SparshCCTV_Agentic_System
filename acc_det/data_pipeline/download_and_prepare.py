@@ -8,7 +8,12 @@ from huggingface_hub import hf_hub_download
 
 # Add parent directory to sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from config import DETECTION_DATASET_DIR, HF_DATASET_CCTV, HF_DATASET_TRAFFIC, DETECTION_CLASSES
+from config import (
+    DETECTION_DATASET_DIR,
+    HF_DATASET_CCTV,
+    HF_DATASET_TRAFFIC,
+    DETECTION_CLASSES,
+)
 
 
 def ensure_dirs():
@@ -52,7 +57,10 @@ def process_cctv_dataset(max_train=2500, max_val=350, max_test=350):
     """
     print(f"\n[1/2] Processing CCTV Accident Dataset ({HF_DATASET_CCTV})...")
     files_map = {
-        "train": ["data/train-00000-of-00002.parquet", "data/train-00001-of-00002.parquet"],
+        "train": [
+            "data/train-00000-of-00002.parquet",
+            "data/train-00001-of-00002.parquet",
+        ],
         "val": ["data/validation-00000-of-00001.parquet"],
         "test": ["data/test-00000-of-00001.parquet"],
     }
@@ -67,9 +75,7 @@ def process_cctv_dataset(max_train=2500, max_val=350, max_test=350):
                 break
             print(f"Downloading {pfile} for split: {split}...")
             local_path = hf_hub_download(
-                repo_id=HF_DATASET_CCTV,
-                filename=pfile,
-                repo_type="dataset"
+                repo_id=HF_DATASET_CCTV, filename=pfile, repo_type="dataset"
             )
             df = pl.read_parquet(local_path, columns=["image", "objects"])
             print(f"Loaded {len(df)} records. Extracting to {split}...")
@@ -86,8 +92,12 @@ def process_cctv_dataset(max_train=2500, max_val=350, max_test=350):
                 img_filename = f"cctv_{split}_{total_saved[split]:05d}.jpg"
                 lbl_filename = f"cctv_{split}_{total_saved[split]:05d}.txt"
 
-                img_path = os.path.join(DETECTION_DATASET_DIR, "images", split, img_filename)
-                lbl_path = os.path.join(DETECTION_DATASET_DIR, "labels", split, lbl_filename)
+                img_path = os.path.join(
+                    DETECTION_DATASET_DIR, "images", split, img_filename
+                )
+                lbl_path = os.path.join(
+                    DETECTION_DATASET_DIR, "labels", split, lbl_filename
+                )
 
                 # Write image
                 with open(img_path, "wb") as f:
@@ -106,7 +116,9 @@ def process_cctv_dataset(max_train=2500, max_val=350, max_test=350):
                     yolo_box = convert_coco_to_yolo_bbox(bbox, 640.0, 640.0)
                     if yolo_box:
                         x_c, y_c, nw, nh = yolo_box
-                        lines.append(f"{unified_cls} {x_c:.6f} {y_c:.6f} {nw:.6f} {nh:.6f}\n")
+                        lines.append(
+                            f"{unified_cls} {x_c:.6f} {y_c:.6f} {nw:.6f} {nh:.6f}\n"
+                        )
 
                 # Write label file (empty if no valid boxes, serving as negative background)
                 with open(lbl_path, "w") as f:
@@ -129,12 +141,16 @@ def process_traffic_dataset(max_images=3000):
     local_path = hf_hub_download(
         repo_id=HF_DATASET_TRAFFIC,
         filename="data/train-00000-of-00001.parquet",
-        repo_type="dataset"
+        repo_type="dataset",
     )
 
-    df = pl.read_parquet(local_path, columns=["image", "objects", "width", "height", "is_accident"])
+    df = pl.read_parquet(
+        local_path, columns=["image", "objects", "width", "height", "is_accident"]
+    )
     total_len = min(len(df), max_images)
-    print(f"Loaded {len(df)} records. Extracting up to {total_len} samples with 80/10/10 split...")
+    print(
+        f"Loaded {len(df)} records. Extracting up to {total_len} samples with 80/10/10 split..."
+    )
 
     counts = {"train": 0, "val": 0, "test": 0}
 
@@ -177,7 +193,9 @@ def process_traffic_dataset(max_images=3000):
                 yolo_box = convert_coco_to_yolo_bbox(bbox, img_w, img_h)
                 if yolo_box:
                     x_c, y_c, nw, nh = yolo_box
-                    lines.append(f"{unified_cls} {x_c:.6f} {y_c:.6f} {nw:.6f} {nh:.6f}\n")
+                    lines.append(
+                        f"{unified_cls} {x_c:.6f} {y_c:.6f} {nw:.6f} {nh:.6f}\n"
+                    )
 
         with open(lbl_path, "w") as f:
             f.writelines(lines)
@@ -196,7 +214,7 @@ def create_data_yaml():
         "train": "images/train",
         "val": "images/val",
         "test": "images/test",
-        "names": DETECTION_CLASSES
+        "names": DETECTION_CLASSES,
     }
     with open(yaml_path, "w") as f:
         yaml.dump(data, f, sort_keys=False)

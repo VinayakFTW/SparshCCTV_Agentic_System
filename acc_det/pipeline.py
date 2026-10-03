@@ -17,26 +17,28 @@ from acc_det.config import (
     TIER1_BEST_DETECTOR,
     TIER2_BEST_SEVERITY,
     TARGET_FPS,
-    FRAME_INTERVAL_MS
+    FRAME_INTERVAL_MS,
 )
 
 
 @dataclass
 class AccidentDetection:
     """Represents a single detected vehicle or accident with severity."""
+
     bbox: Tuple[int, int, int, int]  # (x1, y1, x2, y2) in pixel coordinates
     confidence: float
     is_accident: bool
-    label: str                       # 'normal', 'moderate_accident', or 'severe_accident'
+    label: str  # 'normal', 'moderate_accident', or 'severe_accident'
     display_name: str
-    severity_level: int              # 0: normal, 2: moderate, 3: severe
-    severity_confidence: float       # Confidence from Tier 2 severity model
-    color: Tuple[int, int, int]       # BGR color for HUD display
+    severity_level: int  # 0: normal, 2: moderate, 3: severe
+    severity_confidence: float  # Confidence from Tier 2 severity model
+    color: Tuple[int, int, int]  # BGR color for HUD display
 
 
 @dataclass
 class PipelineResult:
     """Result of full hierarchical inference on a single frame."""
+
     frame_idx: int
     detections: List[AccidentDetection] = field(default_factory=list)
     has_accident: bool = False
@@ -61,21 +63,27 @@ class HierarchicalAccidentPipeline:
         severity_path: str = TIER2_BEST_SEVERITY,
         conf_thres: float = 0.35,
         iou_thres: float = 0.45,
-        device: str = "cuda:0" if torch.cuda.is_available() else "cpu"
+        device: str = "cuda:0" if torch.cuda.is_available() else "cpu",
     ):
         self.conf_thres = conf_thres
         self.iou_thres = iou_thres
         self.device = device
 
         if not os.path.exists(detector_path):
-            raise FileNotFoundError(f"Tier 1 detector weights not found at: {detector_path}")
+            raise FileNotFoundError(
+                f"Tier 1 detector weights not found at: {detector_path}"
+            )
         if not os.path.exists(severity_path):
-            raise FileNotFoundError(f"Tier 2 severity weights not found at: {severity_path}")
+            raise FileNotFoundError(
+                f"Tier 2 severity weights not found at: {severity_path}"
+            )
 
         print(f"[HierarchicalPipeline] Loading Tier 1 Detector from: {detector_path}")
         self.detector = YOLO(detector_path)
 
-        print(f"[HierarchicalPipeline] Loading Tier 2 Severity Classifier from: {severity_path}")
+        print(
+            f"[HierarchicalPipeline] Loading Tier 2 Severity Classifier from: {severity_path}"
+        )
         self.severity_classifier = YOLO(severity_path)
 
         # Warm-up models
@@ -89,7 +97,9 @@ class HierarchicalAccidentPipeline:
         """Update detection confidence threshold."""
         self.conf_thres = conf
 
-    def process_frame(self, frame_bgr: np.ndarray, frame_idx: int = 0) -> PipelineResult:
+    def process_frame(
+        self, frame_bgr: np.ndarray, frame_idx: int = 0
+    ) -> PipelineResult:
         """
         Executes hierarchical two-tier inference on a video frame.
         """
@@ -103,7 +113,7 @@ class HierarchicalAccidentPipeline:
             conf=self.conf_thres,
             iou=self.iou_thres,
             device=self.device,
-            verbose=False
+            verbose=False,
         )
         t1_duration = (time.perf_counter() - t1_start) * 1000.0
 
@@ -127,7 +137,7 @@ class HierarchicalAccidentPipeline:
                 y2 = max(y1 + 1, min(h, y2))
 
                 # Check if detector identified accident (class 1)
-                is_accident = (cls_id == 1)
+                is_accident = cls_id == 1
 
                 if not is_accident:
                     # Normal vehicle / normal traffic
@@ -139,7 +149,7 @@ class HierarchicalAccidentPipeline:
                         display_name="Normal Vehicle",
                         severity_level=0,
                         severity_confidence=conf,
-                        color=(0, 210, 60)  # Bright Green
+                        color=(0, 210, 60),  # Bright Green
                     )
                     detections.append(det)
                 else:
@@ -162,14 +172,18 @@ class HierarchicalAccidentPipeline:
                         crop = frame_bgr[y1:y2, x1:x2]
 
                     crop_resized = cv2.resize(crop, (224, 224))
-                    sev_res = self.severity_classifier(crop_resized, verbose=False, device=self.device)
+                    sev_res = self.severity_classifier(
+                        crop_resized, verbose=False, device=self.device
+                    )
                     t2_duration += (time.perf_counter() - t2_start) * 1000.0
 
                     # Parse severity result
                     probs = sev_res[0].probs
                     top1_idx = int(probs.top1)
                     sev_conf = float(probs.top1conf.item())
-                    sev_name = self.severity_classifier.names.get(top1_idx, "moderate").lower()
+                    sev_name = self.severity_classifier.names.get(
+                        top1_idx, "moderate"
+                    ).lower()
 
                     # Contextual promotion heuristic:
                     # Very large collision footprint relative to frame or multiple overlapping vehicles
@@ -195,11 +209,14 @@ class HierarchicalAccidentPipeline:
                         display_name=display_name,
                         severity_level=severity_level,
                         severity_confidence=sev_conf,
-                        color=color
+                        color=color,
                     )
                     detections.append(det)
 
-                    if highest_det is None or det.severity_level > highest_det.severity_level:
+                    if (
+                        highest_det is None
+                        or det.severity_level > highest_det.severity_level
+                    ):
                         highest_det = det
 
         total_duration = (time.perf_counter() - start_t) * 1000.0
@@ -212,5 +229,5 @@ class HierarchicalAccidentPipeline:
             highest_detection=highest_det,
             inference_time_ms=total_duration,
             tier1_time_ms=t1_duration,
-            tier2_time_ms=t2_duration
+            tier2_time_ms=t2_duration,
         )

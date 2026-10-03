@@ -12,12 +12,7 @@ root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fil
 if root_dir not in sys.path:
     sys.path.insert(0, root_dir)
 
-from acc_det.config import (
-    ROOT_DIR,
-    ACC_DET_DIR,
-    TIER1_BEST_DETECTOR,
-    DEVICE
-)
+from acc_det.config import ROOT_DIR, ACC_DET_DIR, TIER1_BEST_DETECTOR, DEVICE
 
 VIDEO_DERIVED_DIR = os.path.join(ACC_DET_DIR, "dataset", "video_derived")
 IMAGES_DIR = os.path.join(VIDEO_DERIVED_DIR, "images")
@@ -58,7 +53,7 @@ def auto_annotate_all(
     no_accident_dir: str,
     stride: int = 18,
     max_frames_per_video: int = 35,
-    conf_thres: float = 0.38
+    conf_thres: float = 0.38,
 ):
     print("=" * 65)
     print("   AUTOMATED SURVEILLANCE VIDEO ANNOTATION PIPELINE   ")
@@ -85,7 +80,9 @@ def auto_annotate_all(
     total_bg_frames = 0
 
     # ---------------- 1. Process 57 Accident Videos ----------------
-    print("\n[Phase 1/2] Processing Accident Videos (Temporal Incident Localization)...")
+    print(
+        "\n[Phase 1/2] Processing Accident Videos (Temporal Incident Localization)..."
+    )
     for vid_path in tqdm(acc_videos, desc="Accident Videos"):
         vid_name = os.path.splitext(os.path.basename(vid_path))[0]
         cap = cv2.VideoCapture(vid_path)
@@ -125,7 +122,9 @@ def auto_annotate_all(
                     boxes.append((cls_id, score, xyxy))
                     if cls_id == 1 and score >= conf_thres:
                         has_acc = True
-            frame_dets.append({"f_idx": f_idx, "frame": frame, "boxes": boxes, "has_acc": has_acc})
+            frame_dets.append(
+                {"f_idx": f_idx, "frame": frame, "boxes": boxes, "has_acc": has_acc}
+            )
 
         # Temporal persistence filter: find accident cluster
         acc_indices = [i for i, d in enumerate(frame_dets) if d["has_acc"]]
@@ -136,7 +135,10 @@ def auto_annotate_all(
         for i, d in enumerate(frame_dets):
             frame = d["frame"]
             f_idx = d["f_idx"]
-            is_in_incident_window = (start_incident_idx >= 0 and start_incident_idx <= i <= end_incident_idx + 1)
+            is_in_incident_window = (
+                start_incident_idx >= 0
+                and start_incident_idx <= i <= end_incident_idx + 1
+            )
 
             # Generate YOLO annotations
             yolo_lines = []
@@ -177,7 +179,9 @@ def auto_annotate_all(
                 total_bg_frames += 1
 
     # ---------------- 2. Process 73 No-Accident Videos ----------------
-    print("\n[Phase 2/2] Processing No-Accident Videos (Zero Leakage Vehicle & Negative Harvest)...")
+    print(
+        "\n[Phase 2/2] Processing No-Accident Videos (Zero Leakage Vehicle & Negative Harvest)..."
+    )
     for vid_path in tqdm(noacc_videos, desc="No-Accident Videos"):
         vid_name = os.path.splitext(os.path.basename(vid_path))[0]
         cap = cv2.VideoCapture(vid_path)
@@ -195,7 +199,9 @@ def auto_annotate_all(
                 break
 
             if frame_idx % (stride + 2) == 0:
-                results = teacher(frame, conf=(conf_thres - 0.05), device=device, verbose=False)
+                results = teacher(
+                    frame, conf=(conf_thres - 0.05), device=device, verbose=False
+                )
                 yolo_lines = []
 
                 if results and len(results) > 0 and results[0].boxes is not None:
@@ -207,7 +213,9 @@ def auto_annotate_all(
                             xc, yc, nw, nh = coords
                             # In no-accident videos, ALL detected vehicles are strictly class 0 (normal)
                             # Zero accident leakage guarantee!
-                            yolo_lines.append(f"0 {xc:.6f} {yc:.6f} {nw:.6f} {nh:.6f}\n")
+                            yolo_lines.append(
+                                f"0 {xc:.6f} {yc:.6f} {nw:.6f} {nh:.6f}\n"
+                            )
                             total_normal_boxes += 1
 
                 img_saved_name = f"cctv_noacc_{vid_name}_f{frame_idx:05d}.jpg"
@@ -235,14 +243,16 @@ def auto_annotate_all(
     print(f"Total Frames Auto-Annotated : {total_images_saved}")
     print(f"Accident Bounding Boxes     : {total_accident_boxes}")
     print(f"Normal Vehicle Boxes        : {total_normal_boxes}")
-    print(f"Pure Background Negatives   : {total_bg_frames} ({total_bg_frames/max(1, total_images_saved):.1%})")
+    print(
+        f"Pure Background Negatives   : {total_bg_frames} ({total_bg_frames / max(1, total_images_saved):.1%})"
+    )
     print("=" * 65)
 
     return {
         "images": total_images_saved,
         "accidents": total_accident_boxes,
         "normal": total_normal_boxes,
-        "background": total_bg_frames
+        "background": total_bg_frames,
     }
 
 
@@ -254,7 +264,7 @@ def main():
         no_accident_dir=noacc_dir,
         stride=18,
         max_frames_per_video=35,
-        conf_thres=0.38
+        conf_thres=0.38,
     )
 
 

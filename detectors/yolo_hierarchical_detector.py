@@ -10,7 +10,7 @@ from config import (
     YOLO_SEVERITY_PATH,
     DEFAULT_CRASH_CONF,
     DEFAULT_CRASH_IOU,
-    SEVERITY_CONFIG
+    SEVERITY_CONFIG,
 )
 from detectors.accident_detector import VehicleDetection
 
@@ -29,7 +29,7 @@ class YOLOHierarchicalAccidentDetector:
         severity_path: str = YOLO_SEVERITY_PATH,
         conf_thres: float = DEFAULT_CRASH_CONF,
         iou_thres: float = DEFAULT_CRASH_IOU,
-        device: Optional[str] = None
+        device: Optional[str] = None,
     ):
         self.detector_path = detector_path
         self.severity_path = severity_path
@@ -42,9 +42,13 @@ class YOLOHierarchicalAccidentDetector:
             self.device = device
 
         if not os.path.exists(self.detector_path):
-            raise FileNotFoundError(f"YOLO detector weights not found at: {self.detector_path}")
+            raise FileNotFoundError(
+                f"YOLO detector weights not found at: {self.detector_path}"
+            )
         if not os.path.exists(self.severity_path):
-            raise FileNotFoundError(f"YOLO severity weights not found at: {self.severity_path}")
+            raise FileNotFoundError(
+                f"YOLO severity weights not found at: {self.severity_path}"
+            )
 
         self.detector = YOLO(self.detector_path)
         self.severity_classifier = YOLO(self.severity_path)
@@ -77,7 +81,7 @@ class YOLOHierarchicalAccidentDetector:
             conf=self.conf_thres,
             iou=self.iou_thres,
             device=self.device,
-            verbose=False
+            verbose=False,
         )
 
         detections: List[VehicleDetection] = []
@@ -95,21 +99,23 @@ class YOLOHierarchicalAccidentDetector:
             x2 = max(x1 + 1, min(w, x2))
             y2 = max(y1 + 1, min(h, y2))
 
-            is_accident = (cls_id == 1)
+            is_accident = cls_id == 1
 
             if not is_accident:
                 # Normal Vehicle
-                detections.append(VehicleDetection(
-                    bbox=(x1, y1, x2, y2),
-                    confidence=conf,
-                    class_id=2,
-                    raw_name="vehicle",
-                    display_name="Normal Vehicle",
-                    short_name="NORMAL",
-                    color=(0, 210, 60),  # Bright Green
-                    is_accident=False,
-                    severity_level=0
-                ))
+                detections.append(
+                    VehicleDetection(
+                        bbox=(x1, y1, x2, y2),
+                        confidence=conf,
+                        class_id=2,
+                        raw_name="vehicle",
+                        display_name="Normal Vehicle",
+                        short_name="NORMAL",
+                        color=(0, 210, 60),  # Bright Green
+                        is_accident=False,
+                        severity_level=0,
+                    )
+                )
             else:
                 # Tier 2: Severity Classification on Accident ROI
                 bw = x2 - x1
@@ -126,12 +132,16 @@ class YOLOHierarchicalAccidentDetector:
                     crop = frame_bgr[y1:y2, x1:x2]
 
                 crop_resized = cv2.resize(crop, (224, 224))
-                sev_res = self.severity_classifier(crop_resized, verbose=False, device=self.device)
+                sev_res = self.severity_classifier(
+                    crop_resized, verbose=False, device=self.device
+                )
 
                 probs = sev_res[0].probs
                 top1_idx = int(probs.top1)
                 sev_conf = float(probs.top1conf.item())
-                sev_name = self.severity_classifier.names.get(top1_idx, "moderate").lower()
+                sev_name = self.severity_classifier.names.get(
+                    top1_idx, "moderate"
+                ).lower()
 
                 # Large collision footprint or structural deformation flags severe
                 if "severe" in sev_name or (bw * bh > 0.20 * w * h):
@@ -147,22 +157,26 @@ class YOLOHierarchicalAccidentDetector:
                     short_name = "MODERATE"
                     color = (0, 165, 255)  # Vibrant Orange
 
-                detections.append(VehicleDetection(
-                    bbox=(x1, y1, x2, y2),
-                    confidence=conf,
-                    class_id=0 if sev_level == 3 else 1,
-                    raw_name=raw_name,
-                    display_name=display_name,
-                    short_name=short_name,
-                    color=color,
-                    is_accident=True,
-                    severity_level=sev_level
-                ))
+                detections.append(
+                    VehicleDetection(
+                        bbox=(x1, y1, x2, y2),
+                        confidence=conf,
+                        class_id=0 if sev_level == 3 else 1,
+                        raw_name=raw_name,
+                        display_name=display_name,
+                        short_name=short_name,
+                        color=color,
+                        is_accident=True,
+                        severity_level=sev_level,
+                    )
+                )
 
         return detections
 
     @staticmethod
-    def get_highest_severity(detections: List[VehicleDetection]) -> Tuple[int, Optional[VehicleDetection]]:
+    def get_highest_severity(
+        detections: List[VehicleDetection],
+    ) -> Tuple[int, Optional[VehicleDetection]]:
         """
         Returns (highest_severity_level, detection_with_highest_severity).
         Returns (-1, None) if no detections.

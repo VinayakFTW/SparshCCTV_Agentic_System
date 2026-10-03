@@ -30,16 +30,10 @@ TIER1_BEST_DETECTOR = os.path.join(WEIGHTS_DIR, "best_detector.pt")
 TIER2_BEST_SEVERITY = os.path.join(WEIGHTS_DIR, "best_severity.pt")
 
 # Tier 1 Detection Classes (Spatial Detection)
-DETECTION_CLASSES = {
-    0: "normal",
-    1: "accident"
-}
+DETECTION_CLASSES = {0: "normal", 1: "accident"}
 
 # Tier 2 Severity Classes (Accident Classification)
-SEVERITY_CLASSES = {
-    0: "moderate",
-    1: "severe"
-}
+SEVERITY_CLASSES = {0: "moderate", 1: "severe"}
 
 # Video & CCTV Stream Camera Settings
 TARGET_FPS = 15.0
